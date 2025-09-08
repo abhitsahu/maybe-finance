@@ -4,7 +4,7 @@ class Provider::Openai < Provider
   # Subclass so errors caught in this provider are raised as Provider::Openai::Error
   Error = Class.new(Provider::Error)
 
-  MODELS = %w[gpt-4.1]
+  MODELS = %w[gpt-4 gpt-4-turbo gpt-4o gpt-4o-mini gpt-3.5-turbo]
 
   def initialize(access_token)
     @client = ::OpenAI::Client.new(access_token: access_token)
@@ -74,7 +74,12 @@ class Provider::Openai < Provider
       # for the "response chunk" in the stream and return it (it is already parsed)
       if stream_proxy.present?
         response_chunk = collected_chunks.find { |chunk| chunk.type == "response" }
-        response_chunk.data
+        if response_chunk
+          response_chunk.data
+        else
+          # If no response chunk found, try to parse the raw response
+          ChatParser.new(raw_response).parsed
+        end
       else
         ChatParser.new(raw_response).parsed
       end
